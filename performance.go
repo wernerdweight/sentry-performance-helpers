@@ -8,7 +8,7 @@ import (
 
 type transactionContext struct {
 	transactions map[string]*sentry.Span
-	spans map[string]map[string]*sentry.Span
+	spans        map[string]map[string]*sentry.Span
 }
 
 var currentTransactionContext *transactionContext = nil

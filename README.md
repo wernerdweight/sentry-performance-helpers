@@ -4,9 +4,9 @@ Performance Helpers for Sentry Performance Monitoring
 Helpers to get sentry performance monitoring working easily.
 
 [![Build Status](https://travis-ci.org/wernerdweight/sentry-performance-helpers.svg?branch=master)](https://travis-ci.org/wernerdweight/sentry-performance-helpers)
-[![Latest Stable Version](https://poser.pugx.org/wernerdweight/sentry-performance-helpers/v/stable)](https://packagist.org/packages/wernerdweight/sentry-performance-helpers)
-[![Total Downloads](https://poser.pugx.org/wernerdweight/sentry-performance-helpers/downloads)](https://packagist.org/packages/wernerdweight/sentry-performance-helpers)
-[![License](https://poser.pugx.org/wernerdweight/sentry-performance-helpers/license)](https://packagist.org/packages/wernerdweight/sentry-performance-helpers)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wernerdweight/sentry-performance-helpers)](https://goreportcard.com/report/github.com/wernerdweight/sentry-performance-helpers)
+[![GoDoc](https://godoc.org/github.com/wernerdweight/sentry-performance-helpers?status.svg)](https://godoc.org/github.com/wernerdweight/sentry-performance-helpers)
+[![go.dev](https://img.shields.io/badge/go.dev-pkg-007d9c.svg?style=flat)](https://pkg.go.dev/github.com/wernerdweight/sentry-performance-helpers)
 
 
 Installation
