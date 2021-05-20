@@ -31,5 +31,5 @@ func TestSpans(t *testing.T) {
 	assertion.NotNil(performance.GetSpan("test", "test"))
 	assertion.Nil(performance.GetSpan("test", "unknown"))
 	assertion.Nil(performance.GetSpan("unknown", "unknown"))
-	assertion.Nil(performance.CreateSpan("unknown", "unknown"))
+	assertion.NotNil(performance.CreateSpan("unknown", "unknown"))
 }

@@ -31,7 +31,7 @@ func (tc *transactionContext) getTransaction(name string) *sentry.Span {
 func (tc *transactionContext) createSpan(transactionName string, operation string) *sentry.Span {
 	var transaction = tc.getTransaction(transactionName)
 	if nil == transaction {
-		return nil
+		transaction = tc.createTransaction(transactionName, operation)
 	}
 	var span = sentry.StartSpan(transaction.Context(), operation)
 	tc.spans[transactionName][operation] = span
