@@ -3,7 +3,7 @@ Performance Helpers for Sentry Performance Monitoring
 
 Helpers to get sentry performance monitoring working easily.
 
-[![Build Status](https://travis-ci.org/wernerdweight/sentry-performance-helpers.svg?branch=master)](https://travis-ci.org/wernerdweight/sentry-performance-helpers)
+[![Build Status](https://www.travis-ci.com/wernerdweight/sentry-performance-helpers.svg?branch=master)](https://www.travis-ci.com/wernerdweight/sentry-performance-helpers)
 [![Go Report Card](https://goreportcard.com/badge/github.com/wernerdweight/sentry-performance-helpers)](https://goreportcard.com/report/github.com/wernerdweight/sentry-performance-helpers)
 [![GoDoc](https://godoc.org/github.com/wernerdweight/sentry-performance-helpers?status.svg)](https://godoc.org/github.com/wernerdweight/sentry-performance-helpers)
 [![go.dev](https://img.shields.io/badge/go.dev-pkg-007d9c.svg?style=flat)](https://pkg.go.dev/github.com/wernerdweight/sentry-performance-helpers)
