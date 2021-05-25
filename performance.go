@@ -4,11 +4,14 @@ package performance
 import (
 	"context"
 	"github.com/getsentry/sentry-go"
+	"sync"
 )
 
 type transactionContext struct {
-	transactions map[string]*sentry.Span
-	spans        map[string]map[string]*sentry.Span
+	transactions      map[string]*sentry.Span
+	spans             map[string]map[string]*sentry.Span
+	transactionsMutex sync.RWMutex
+	spansMutex        sync.RWMutex
 }
 
 var currentTransactionContext *transactionContext = nil
@@ -16,15 +19,22 @@ var currentTransactionContext *transactionContext = nil
 func (tc *transactionContext) createTransaction(name string, operation string) *sentry.Span {
 	var ctx = context.Background()
 	var transaction = sentry.StartSpan(ctx, operation, sentry.TransactionName(name))
+	tc.transactionsMutex.Lock()
 	tc.transactions[name] = transaction
+	tc.transactionsMutex.Unlock()
+	tc.spansMutex.Lock()
 	tc.spans[name] = make(map[string]*sentry.Span)
+	tc.spansMutex.Unlock()
 	return transaction
 }
 
 func (tc *transactionContext) getTransaction(name string) *sentry.Span {
+	tc.transactionsMutex.Lock()
 	if transaction, ok := tc.transactions[name]; ok {
+		tc.transactionsMutex.Unlock()
 		return transaction
 	}
+	tc.transactionsMutex.Unlock()
 	return nil
 }
 
@@ -34,16 +44,21 @@ func (tc *transactionContext) createSpan(transactionName string, operation strin
 		transaction = tc.createTransaction(transactionName, operation)
 	}
 	var span = sentry.StartSpan(transaction.Context(), operation)
+	tc.spansMutex.Lock()
 	tc.spans[transactionName][operation] = span
+	tc.spansMutex.Unlock()
 	return span
 }
 
 func (tc *transactionContext) getSpan(transactionName string, operation string) *sentry.Span {
+	tc.spansMutex.Lock()
 	if transaction, ok := tc.spans[transactionName]; ok {
 		if span, ok := transaction[operation]; ok {
+			tc.spansMutex.Unlock()
 			return span
 		}
 	}
+	tc.spansMutex.Unlock()
 	return nil
 }
 
@@ -57,8 +72,10 @@ func getCurrentTransactionContext() *transactionContext {
 // Refresh clears current transaction context.
 func Refresh() {
 	currentTransactionContext = &transactionContext{
-		transactions: make(map[string]*sentry.Span),
-		spans:        make(map[string]map[string]*sentry.Span),
+		transactions:      make(map[string]*sentry.Span),
+		spans:             make(map[string]map[string]*sentry.Span),
+		transactionsMutex: sync.RWMutex{},
+		spansMutex:        sync.RWMutex{},
 	}
 }
 
