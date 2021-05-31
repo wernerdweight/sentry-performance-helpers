@@ -12,7 +12,7 @@ Helpers to get sentry performance monitoring working easily.
 Installation
 ------------
 
-### 1. Download using composer
+### 1. Installation
 
 ```bash
 go get github.com/wernerdweight/sentry-performance-helpers
