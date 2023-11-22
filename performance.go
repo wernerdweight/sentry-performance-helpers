@@ -16,8 +16,7 @@ type transactionContext struct {
 
 var currentTransactionContext *transactionContext = nil
 
-func (tc *transactionContext) createTransaction(name string, operation string) *sentry.Span {
-	var ctx = context.Background()
+func (tc *transactionContext) createTransaction(name string, operation string, ctx context.Context) *sentry.Span {
 	var transaction = sentry.StartSpan(ctx, operation, sentry.TransactionName(name))
 	tc.transactionsMutex.Lock()
 	tc.transactions[name] = transaction
@@ -41,7 +40,7 @@ func (tc *transactionContext) getTransaction(name string) *sentry.Span {
 func (tc *transactionContext) createSpan(transactionName string, operation string) *sentry.Span {
 	var transaction = tc.getTransaction(transactionName)
 	if nil == transaction {
-		transaction = tc.createTransaction(transactionName, operation)
+		transaction = tc.createTransaction(transactionName, operation, context.Background())
 	}
 	var span = sentry.StartSpan(transaction.Context(), operation)
 	tc.spansMutex.Lock()
@@ -81,7 +80,12 @@ func Refresh() {
 
 // CreateTransaction creates a transaction that can be attached additional spans.
 func CreateTransaction(name string, operation string) *sentry.Span {
-	return getCurrentTransactionContext().createTransaction(name, operation)
+	return getCurrentTransactionContext().createTransaction(name, operation, context.Background())
+}
+
+// CreateTransactionWithContext creates a transaction that can be attached additional spans and sets an existing context.
+func CreateTransactionWithContext(name string, operation string, ctx context.Context) *sentry.Span {
+	return getCurrentTransactionContext().createTransaction(name, operation, ctx)
 }
 
 // GetTransaction returns a transaction by its name (or nil if none exists).
