@@ -17,7 +17,7 @@ type transactionContext struct {
 var currentTransactionContext *transactionContext = nil
 
 func (tc *transactionContext) createTransaction(name string, operation string, ctx context.Context) *sentry.Span {
-	var transaction = sentry.StartSpan(ctx, operation, sentry.TransactionName(name))
+	var transaction = sentry.StartSpan(ctx, operation, sentry.WithTransactionName(name))
 	tc.transactionsMutex.Lock()
 	tc.transactions[name] = transaction
 	tc.transactionsMutex.Unlock()
