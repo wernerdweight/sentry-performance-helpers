@@ -7,57 +7,102 @@ import (
 	"sync"
 )
 
+// Span wraps a sentry.Span and cleans up map references on Finish.
+type Span struct {
+	*sentry.Span
+	transactionName string
+	operation       string
+	isTransaction   bool
+	tc              *transactionContext
+}
+
+// Finish finishes the underlying sentry span and removes it from the global map
+// so the span (and everything it references) can be garbage collected.
+func (s *Span) Finish() {
+	if s == nil {
+		return
+	}
+	s.Span.Finish()
+	if s.isTransaction {
+		s.tc.transactionsMutex.Lock()
+		delete(s.tc.transactions, s.transactionName)
+		s.tc.transactionsMutex.Unlock()
+		s.tc.spansMutex.Lock()
+		delete(s.tc.spans, s.transactionName)
+		s.tc.spansMutex.Unlock()
+	} else {
+		s.tc.spansMutex.Lock()
+		if ops, ok := s.tc.spans[s.transactionName]; ok {
+			delete(ops, s.operation)
+		}
+		s.tc.spansMutex.Unlock()
+	}
+}
+
 type transactionContext struct {
-	transactions      map[string]*sentry.Span
-	spans             map[string]map[string]*sentry.Span
+	transactions      map[string]*Span
+	spans             map[string]map[string]*Span
 	transactionsMutex sync.RWMutex
 	spansMutex        sync.RWMutex
 }
 
 var currentTransactionContext *transactionContext = nil
 
-func (tc *transactionContext) createTransaction(name string, operation string, ctx context.Context) *sentry.Span {
-	var transaction = sentry.StartSpan(ctx, operation, sentry.WithTransactionName(name))
+func (tc *transactionContext) createTransaction(name string, operation string, ctx context.Context) *Span {
+	var sentrySpan = sentry.StartSpan(ctx, operation, sentry.WithTransactionName(name))
+	span := &Span{
+		Span:            sentrySpan,
+		transactionName: name,
+		isTransaction:   true,
+		tc:              tc,
+	}
 	tc.transactionsMutex.Lock()
-	tc.transactions[name] = transaction
+	tc.transactions[name] = span
 	tc.transactionsMutex.Unlock()
 	tc.spansMutex.Lock()
-	tc.spans[name] = make(map[string]*sentry.Span)
+	tc.spans[name] = make(map[string]*Span)
 	tc.spansMutex.Unlock()
-	return transaction
+	return span
 }
 
-func (tc *transactionContext) getTransaction(name string) *sentry.Span {
-	tc.transactionsMutex.Lock()
+func (tc *transactionContext) getTransaction(name string) *Span {
+	tc.transactionsMutex.RLock()
 	if transaction, ok := tc.transactions[name]; ok {
-		tc.transactionsMutex.Unlock()
+		tc.transactionsMutex.RUnlock()
 		return transaction
 	}
-	tc.transactionsMutex.Unlock()
+	tc.transactionsMutex.RUnlock()
 	return nil
 }
 
-func (tc *transactionContext) createSpan(transactionName string, operation string) *sentry.Span {
+func (tc *transactionContext) createSpan(transactionName string, operation string) *Span {
 	var transaction = tc.getTransaction(transactionName)
 	if nil == transaction {
 		transaction = tc.createTransaction(transactionName, operation, context.Background())
 	}
-	var span = sentry.StartSpan(transaction.Context(), operation)
+	var sentrySpan = sentry.StartSpan(transaction.Context(), operation)
+	span := &Span{
+		Span:            sentrySpan,
+		transactionName: transactionName,
+		operation:       operation,
+		isTransaction:   false,
+		tc:              tc,
+	}
 	tc.spansMutex.Lock()
 	tc.spans[transactionName][operation] = span
 	tc.spansMutex.Unlock()
 	return span
 }
 
-func (tc *transactionContext) getSpan(transactionName string, operation string) *sentry.Span {
-	tc.spansMutex.Lock()
+func (tc *transactionContext) getSpan(transactionName string, operation string) *Span {
+	tc.spansMutex.RLock()
 	if transaction, ok := tc.spans[transactionName]; ok {
 		if span, ok := transaction[operation]; ok {
-			tc.spansMutex.Unlock()
+			tc.spansMutex.RUnlock()
 			return span
 		}
 	}
-	tc.spansMutex.Unlock()
+	tc.spansMutex.RUnlock()
 	return nil
 }
 
@@ -71,34 +116,34 @@ func getCurrentTransactionContext() *transactionContext {
 // Refresh clears current transaction context.
 func Refresh() {
 	currentTransactionContext = &transactionContext{
-		transactions:      make(map[string]*sentry.Span),
-		spans:             make(map[string]map[string]*sentry.Span),
+		transactions:      make(map[string]*Span),
+		spans:             make(map[string]map[string]*Span),
 		transactionsMutex: sync.RWMutex{},
 		spansMutex:        sync.RWMutex{},
 	}
 }
 
 // CreateTransaction creates a transaction that can be attached additional spans.
-func CreateTransaction(name string, operation string) *sentry.Span {
+func CreateTransaction(name string, operation string) *Span {
 	return getCurrentTransactionContext().createTransaction(name, operation, context.Background())
 }
 
 // CreateTransactionWithContext creates a transaction that can be attached additional spans and sets an existing context.
-func CreateTransactionWithContext(name string, operation string, ctx context.Context) *sentry.Span {
+func CreateTransactionWithContext(name string, operation string, ctx context.Context) *Span {
 	return getCurrentTransactionContext().createTransaction(name, operation, ctx)
 }
 
 // GetTransaction returns a transaction by its name (or nil if none exists).
-func GetTransaction(name string) *sentry.Span {
+func GetTransaction(name string) *Span {
 	return getCurrentTransactionContext().getTransaction(name)
 }
 
 // CreateSpan creates a span and attaches it to a transaction specified by its name (returns nil if transaction doesn't exist).
-func CreateSpan(transactionName string, operation string) *sentry.Span {
+func CreateSpan(transactionName string, operation string) *Span {
 	return getCurrentTransactionContext().createSpan(transactionName, operation)
 }
 
 // GetSpan returns a transaction by its name (or nil if none exists).
-func GetSpan(transactionName string, operation string) *sentry.Span {
+func GetSpan(transactionName string, operation string) *Span {
 	return getCurrentTransactionContext().getSpan(transactionName, operation)
 }
