@@ -9,6 +9,7 @@ import (
 )
 
 func TestRefresh(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	performance.CreateTransaction("test", "test")
 	performance.CreateSpan("test", "test")
@@ -20,6 +21,7 @@ func TestRefresh(t *testing.T) {
 }
 
 func TestTransactions(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	performance.CreateTransaction("test", "test")
 	assertion.NotNil(performance.GetTransaction("test"))
@@ -27,6 +29,7 @@ func TestTransactions(t *testing.T) {
 }
 
 func TestSpans(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	performance.CreateTransaction("test", "test")
 	assertion.NotNil(performance.CreateSpan("test", "test"))
@@ -37,6 +40,7 @@ func TestSpans(t *testing.T) {
 }
 
 func TestFinishCleansUpTransaction(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	span := performance.CreateTransaction("cleanup-test", "test.op")
 	assertion.NotNil(performance.GetTransaction("cleanup-test"))
@@ -47,6 +51,7 @@ func TestFinishCleansUpTransaction(t *testing.T) {
 }
 
 func TestFinishCleansUpTransactionWithContext(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	span := performance.CreateTransactionWithContext("ctx-test", "test.op", context.Background())
 	assertion.NotNil(performance.GetTransaction("ctx-test"))
@@ -58,6 +63,7 @@ func TestFinishCleansUpTransactionWithContext(t *testing.T) {
 }
 
 func TestFinishCleansUpSpan(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	performance.CreateTransaction("span-test", "test.op")
 	span := performance.CreateSpan("span-test", "child.op")
@@ -70,6 +76,7 @@ func TestFinishCleansUpSpan(t *testing.T) {
 }
 
 func TestFinishTransactionCleansUpAllSpans(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	tx := performance.CreateTransaction("full-cleanup", "test.op")
 	performance.CreateSpan("full-cleanup", "child1")
@@ -85,6 +92,7 @@ func TestFinishTransactionCleansUpAllSpans(t *testing.T) {
 }
 
 func TestSpanEmbedsSentrySpan(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	span := performance.CreateTransaction("embed-test", "test.op")
 	assertion.NotNil(span.Context())
@@ -92,6 +100,7 @@ func TestSpanEmbedsSentrySpan(t *testing.T) {
 }
 
 func TestFinishDoesNotDeleteNewerTransaction(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	old := performance.CreateTransaction("reuse-key", "test.op")
 	newer := performance.CreateTransaction("reuse-key", "test.op.v2")
@@ -104,6 +113,7 @@ func TestFinishDoesNotDeleteNewerTransaction(t *testing.T) {
 }
 
 func TestFinishDoesNotDeleteNewerSpan(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	assertion := assert.New(t)
 	performance.CreateTransaction("span-reuse", "test.op")
 	old := performance.CreateSpan("span-reuse", "child")
@@ -117,6 +127,7 @@ func TestFinishDoesNotDeleteNewerSpan(t *testing.T) {
 }
 
 func TestConcurrentCreateAndFinish(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	performance.Refresh()
 	const goroutines = 50
 	done := make(chan struct{})
@@ -143,6 +154,7 @@ func TestConcurrentCreateAndFinish(t *testing.T) {
 }
 
 func TestConcurrentSameKeyCreateAndFinish(t *testing.T) {
+	t.Cleanup(performance.Refresh)
 	performance.Refresh()
 	const goroutines = 50
 	done := make(chan struct{})
