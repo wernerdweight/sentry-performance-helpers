@@ -1,4 +1,4 @@
-module github.com/wernerdweight/sentry-performance-helpers
+module github.com/wernerdweight/sentry-performance-helpers/v2
 
 go 1.21
 

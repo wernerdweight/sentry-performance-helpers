@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	performance "github.com/wernerdweight/sentry-performance-helpers"
+	performance "github.com/wernerdweight/sentry-performance-helpers/v2"
 	"testing"
 )
 
