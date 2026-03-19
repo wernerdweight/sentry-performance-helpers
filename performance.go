@@ -25,15 +25,19 @@ func (s *Span) Finish() {
 	s.Span.Finish()
 	if s.isTransaction {
 		s.tc.transactionsMutex.Lock()
-		delete(s.tc.transactions, s.transactionName)
+		if current, ok := s.tc.transactions[s.transactionName]; ok && current == s {
+			delete(s.tc.transactions, s.transactionName)
+			s.tc.spansMutex.Lock()
+			delete(s.tc.spans, s.transactionName)
+			s.tc.spansMutex.Unlock()
+		}
 		s.tc.transactionsMutex.Unlock()
-		s.tc.spansMutex.Lock()
-		delete(s.tc.spans, s.transactionName)
-		s.tc.spansMutex.Unlock()
 	} else {
 		s.tc.spansMutex.Lock()
 		if ops, ok := s.tc.spans[s.transactionName]; ok {
-			delete(ops, s.operation)
+			if current, ok := ops[s.operation]; ok && current == s {
+				delete(ops, s.operation)
+			}
 		}
 		s.tc.spansMutex.Unlock()
 	}
@@ -89,7 +93,9 @@ func (tc *transactionContext) createSpan(transactionName string, operation strin
 		tc:              tc,
 	}
 	tc.spansMutex.Lock()
-	tc.spans[transactionName][operation] = span
+	if ops, ok := tc.spans[transactionName]; ok {
+		ops[operation] = span
+	}
 	tc.spansMutex.Unlock()
 	return span
 }

@@ -2,6 +2,7 @@ package performance_test
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	performance "github.com/wernerdweight/sentry-performance-helpers"
 	"testing"
@@ -88,4 +89,74 @@ func TestSpanEmbedsSentrySpan(t *testing.T) {
 	span := performance.CreateTransaction("embed-test", "test.op")
 	assertion.NotNil(span.Context())
 	span.Finish()
+}
+
+func TestFinishDoesNotDeleteNewerTransaction(t *testing.T) {
+	assertion := assert.New(t)
+	old := performance.CreateTransaction("reuse-key", "test.op")
+	newer := performance.CreateTransaction("reuse-key", "test.op.v2")
+
+	old.Finish()
+
+	assertion.NotNil(performance.GetTransaction("reuse-key"), "newer transaction should survive old Finish")
+	newer.Finish()
+	assertion.Nil(performance.GetTransaction("reuse-key"))
+}
+
+func TestFinishDoesNotDeleteNewerSpan(t *testing.T) {
+	assertion := assert.New(t)
+	performance.CreateTransaction("span-reuse", "test.op")
+	old := performance.CreateSpan("span-reuse", "child")
+	newer := performance.CreateSpan("span-reuse", "child")
+
+	old.Finish()
+
+	assertion.NotNil(performance.GetSpan("span-reuse", "child"), "newer span should survive old Finish")
+	newer.Finish()
+	assertion.Nil(performance.GetSpan("span-reuse", "child"))
+}
+
+func TestConcurrentCreateAndFinish(t *testing.T) {
+	performance.Refresh()
+	const goroutines = 50
+	done := make(chan struct{})
+
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer func() { done <- struct{}{} }()
+			name := fmt.Sprintf("concurrent-tx-%d", id)
+			tx := performance.CreateTransactionWithContext(name, "test.op", context.Background())
+			performance.CreateSpan(name, "child1")
+			performance.CreateSpan(name, "child2")
+			tx.Finish()
+		}(i)
+	}
+
+	for i := 0; i < goroutines; i++ {
+		<-done
+	}
+
+	for i := 0; i < goroutines; i++ {
+		name := fmt.Sprintf("concurrent-tx-%d", i)
+		assert.Nil(t, performance.GetTransaction(name), "transaction %s should be cleaned up", name)
+	}
+}
+
+func TestConcurrentSameKeyCreateAndFinish(t *testing.T) {
+	performance.Refresh()
+	const goroutines = 50
+	done := make(chan struct{})
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer func() { done <- struct{}{} }()
+			tx := performance.CreateTransactionWithContext("same-key", "test.op", context.Background())
+			performance.CreateSpan("same-key", "child")
+			tx.Finish()
+		}()
+	}
+
+	for i := 0; i < goroutines; i++ {
+		<-done
+	}
 }
