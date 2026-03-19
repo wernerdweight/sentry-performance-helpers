@@ -144,12 +144,12 @@ func GetTransaction(name string) *Span {
 	return getCurrentTransactionContext().getTransaction(name)
 }
 
-// CreateSpan creates a span and attaches it to a transaction specified by its name (returns nil if transaction doesn't exist).
+// CreateSpan creates a span and attaches it to a transaction specified by its name. If the transaction doesn't exist, it is created automatically.
 func CreateSpan(transactionName string, operation string) *Span {
 	return getCurrentTransactionContext().createSpan(transactionName, operation)
 }
 
-// GetSpan returns a transaction by its name (or nil if none exists).
+// GetSpan returns a span by its transaction name and operation (or nil if none exists).
 func GetSpan(transactionName string, operation string) *Span {
 	return getCurrentTransactionContext().getSpan(transactionName, operation)
 }
